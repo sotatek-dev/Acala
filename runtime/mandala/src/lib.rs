@@ -821,7 +821,7 @@ parameter_type_with_key! {
 				TokenSymbol::ACA |
 				TokenSymbol::KAR |
 				TokenSymbol::CASH => Balance::max_value(), // unsupported
-				TokenSymbol::PINT => 1,
+				TokenSymbol::PINT => 1, // TODO: update this before we enable PINT
 			},
 			CurrencyId::DexShare(dex_share_0, _) => {
 				let currency_id_0: CurrencyId = (*dex_share_0).into();
