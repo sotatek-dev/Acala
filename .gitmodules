@@ -14,3 +14,7 @@
 	path = evm-tests
 	url = https://github.com/AcalaNetwork/evm-tests.git
 	branch = acala-evm
+[submodule "ecosystem-modules/pint"]
+	path = ecosystem-modules/pint
+	url = https://github.com/sotatek-dev/Polkadot-Index-Substrate
+	branch = connect-acalar-dev

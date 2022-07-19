@@ -312,9 +312,9 @@ fn testnet_genesis(
 		CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
 		FinancialCouncilMembershipConfig, GeneralCouncilMembershipConfig, HomaCouncilMembershipConfig, IndicesConfig,
 		NativeTokenExistentialDeposit, OperatorMembershipAcalaConfig, OrmlNFTConfig, ParachainInfoConfig,
-		PolkadotXcmConfig, RenVmBridgeConfig, SessionConfig, SessionDuration, SessionKeys, SessionManagerConfig,
-		StarportConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig, VestingConfig, ACA,
-		AUSD, DOT, LDOT, RENBTC,
+		PintCommitteeConfig, PolkadotXcmConfig, RenVmBridgeConfig, SessionConfig, SessionDuration, SessionKeys,
+		SessionManagerConfig, StarportConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+		TokensConfig, VestingConfig, ACA, AUSD, DOT, LDOT, RENBTC,
 	};
 
 	let existential_deposit = NativeTokenExistentialDeposit::get();
@@ -382,7 +382,7 @@ fn testnet_genesis(
 			phantom: Default::default(),
 		},
 		operator_membership_acala: OperatorMembershipAcalaConfig {
-			members: vec![root_key],
+			members: vec![root_key.clone()],
 			phantom: Default::default(),
 		},
 		democracy: Default::default(),
@@ -498,6 +498,10 @@ fn testnet_genesis(
 			safe_xcm_version: Some(2),
 		},
 		phragmen_election: Default::default(),
+		pint_committee: PintCommitteeConfig {
+			council_members: vec![root_key],
+			..Default::default()
+		},
 	}
 }
 
@@ -512,9 +516,9 @@ fn mandala_genesis(
 		CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
 		FinancialCouncilMembershipConfig, GeneralCouncilMembershipConfig, HomaCouncilMembershipConfig, IndicesConfig,
 		NativeTokenExistentialDeposit, OperatorMembershipAcalaConfig, OrmlNFTConfig, ParachainInfoConfig,
-		PolkadotXcmConfig, RenVmBridgeConfig, SessionConfig, SessionDuration, SessionKeys, SessionManagerConfig,
-		StarportConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig, TokensConfig, VestingConfig, ACA,
-		AUSD, DOT, LDOT, RENBTC,
+		PintCommitteeConfig, PolkadotXcmConfig, RenVmBridgeConfig, SessionConfig, SessionDuration, SessionKeys,
+		SessionManagerConfig, StarportConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
+		TokensConfig, VestingConfig, ACA, AUSD, DOT, LDOT, RENBTC,
 	};
 
 	let existential_deposit = NativeTokenExistentialDeposit::get();
@@ -588,7 +592,7 @@ fn mandala_genesis(
 		democracy: Default::default(),
 		treasury: Default::default(),
 		tokens: TokensConfig {
-			balances: vec![(root_key, DOT, initial_balance)],
+			balances: vec![(root_key.clone(), DOT, initial_balance)],
 		},
 		vesting: VestingConfig { vesting: vec![] },
 		cdp_treasury: CdpTreasuryConfig {
@@ -680,5 +684,9 @@ fn mandala_genesis(
 			safe_xcm_version: Some(2),
 		},
 		phragmen_election: Default::default(),
+		pint_committee: PintCommitteeConfig {
+			council_members: vec![root_key],
+			..Default::default()
+		},
 	}
 }
