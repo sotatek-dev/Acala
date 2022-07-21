@@ -144,6 +144,7 @@ pint-price-feed = { path = "../../ecosystem-modules/pint/pallets/price-feed", pa
 pint-saft-registry = { path = "../../ecosystem-modules/pint/pallets/saft-registry", package = "pallet-saft-registry", default-features = false }
 pint-primitives = { path = "../../ecosystem-modules/pint/primitives/primitives", package = "primitives", default-features = false }
 pint-runtime-common = { path = "../../ecosystem-modules/pint/runtime/common", package = "runtime-common", default-features = false }
+pint-remote-treasury = { path = "../../ecosystem-modules/pint/pallets/remote-treasury", package = "pallet-remote-treasury", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
@@ -285,7 +286,8 @@ std = [
 	"pint-local-treasury/std",
 	"pint-primitives/std",
 	"pint-price-feed/std",
-	"pint-runtime-common/std"
+	"pint-runtime-common/std",
+	"pint-remote-treasury/std",
 ]
 runtime-benchmarks = [
 	"orml-benchmarking",
@@ -308,9 +310,8 @@ runtime-benchmarks = [
 	"acala-service/runtime-benchmarks",
 
 	"sp-api/disable-logging",
-	"pint-local-treasury/runtime-benchmarks",
 
-
+	"pint-remote-treasury/runtime-benchmarks",
 	"pint-committee/runtime-benchmarks",
 	"pint-saft-registry/runtime-benchmarks",
 	"pint-asset-index/runtime-benchmarks",

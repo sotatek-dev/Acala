@@ -59,6 +59,9 @@ use module_support::{AssetIdMapping, DispatchableTask, ExchangeRateProvider, Poo
 use module_transaction_payment::TargetedFeeAdjustment;
 use scale_info::TypeInfo;
 
+use cumulus_primitives_core::ParaId;
+use pint_primitives::traits::MultiAssetRegistry;
+
 use orml_tokens::CurrencyAdapter;
 use orml_traits::{
 	create_median_value_data_provider, parameter_type_with_key, DataFeeder, DataProviderExtended, GetByKey,
@@ -132,6 +135,7 @@ pub use pint_committee;
 pub use pint_local_treasury;
 pub use pint_price_feed;
 pub use pint_primitives;
+pub use pint_remote_treasury;
 pub use pint_saft_registry;
 
 /// This runtime version.
@@ -1802,6 +1806,7 @@ parameter_types! {
 	pub const PINTAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::PINT);
 	pub const MaxActiveDeposits: u32 = 50;
 	pub const MaxDecimals: u8 = 18;
+	pub const RelayChainAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::ACA);
 }
 
 /// Range of lockup period
@@ -1851,6 +1856,65 @@ impl pint_local_treasury::Config for Runtime {
 	type Currency = Balances;
 	type Event = Event;
 	type WeightInfo = pint_runtime_common::weights::pallet_local_treasury::WeightInfo<Runtime>;
+}
+
+pub struct AssetIdConvert;
+impl Convert<CurrencyId, Option<MultiLocation>> for AssetIdConvert {
+	fn convert(asset: CurrencyId) -> Option<MultiLocation> {
+		AssetIndex::native_asset_location(&asset)
+	}
+}
+
+impl Convert<MultiLocation, Option<CurrencyId>> for AssetIdConvert {
+	fn convert(location: MultiLocation) -> Option<CurrencyId> {
+		match location {
+			MultiLocation {
+				parents: 1,
+				interior: Junctions::Here,
+			} => return Some(RelayChainAssetId::get()),
+			MultiLocation {
+				parents: 1,
+				interior: Junctions::X2(Junction::Parachain(id), Junction::GeneralKey(key)),
+			} if ParaId::from(id) == ParachainInfo::parachain_id() => {
+				// decode the general key
+				if let Ok(asset_id) = CurrencyId::decode(&mut &key[..]) {
+					// check `asset_id` is supported
+					if AssetIndex::is_liquid_asset(&asset_id) {
+						return Some(asset_id);
+					}
+				}
+			}
+			_ => {}
+		}
+		None
+	}
+}
+
+impl Convert<MultiAsset, Option<CurrencyId>> for AssetIdConvert {
+	fn convert(asset: MultiAsset) -> Option<CurrencyId> {
+		if let xcm::v1::AssetId::Concrete(location) = asset.id {
+			Self::convert(location)
+		} else {
+			None
+		}
+	}
+}
+
+pub struct AccountId32Convert;
+impl Convert<AccountId, [u8; 32]> for AccountId32Convert {
+	fn convert(account_id: AccountId) -> [u8; 32] {
+		account_id.into()
+	}
+}
+
+impl Convert<AccountId, MultiLocation> for AccountId32Convert {
+	fn convert(account_id: AccountId) -> MultiLocation {
+		Junction::AccountId32 {
+			network: NetworkId::Any,
+			id: Self::convert(account_id),
+		}
+		.into()
+	}
 }
 
 impl pint_committee::Config for Runtime {
@@ -1913,6 +1977,20 @@ impl pint_price_feed::PriceFeed<CurrencyId> for AggregatedDataProvider {
 			.ok_or(module_prices::Error::<Runtime>::AccessPriceFailed)?;
 		Ok(pint_price_feed::AssetPricePair::new(base, quote, price))
 	}
+}
+
+impl pint_remote_treasury::Config for Runtime {
+	type Event = Event;
+	type AdminOrigin = pint_committee::EnsureApprovedByCommittee<Runtime>;
+	type Balance = Balance;
+	type AssetId = CurrencyId;
+	type PalletId = TreasuryPalletId;
+	type SelfAssetId = PINTAssetId;
+	type RelayChainAssetId = RelayChainAssetId;
+	type XcmAssetTransfer = XTokens;
+	type AssetIdConvert = AssetIdConvert;
+	type AccountId32Convert = AccountId32Convert;
+	type WeightInfo = ();
 }
 
 /// Remote Asset manager that does nothing
@@ -2200,7 +2278,7 @@ construct_runtime!(
 		PintCommittee: pint_committee::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 212,
 		PintLocalTreasury: pint_local_treasury::{Pallet, Call, Storage, Event<T>} = 213,
 		SaftRegistry: pint_saft_registry::{Pallet, Call, Storage, Event<T>} = 214,
-
+		PintRemoteTreasury: pint_remote_treasury::{Pallet, Call, Storage, Event<T>} = 215,
 		// Dev
 		Sudo: pallet_sudo = 255,
 	}

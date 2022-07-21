@@ -5465,6 +5465,7 @@ dependencies = [
  "pallet-price-feed",
  "pallet-proxy",
  "pallet-recovery",
+ "pallet-remote-treasury",
  "pallet-saft-registry",
  "pallet-scheduler",
  "pallet-session",
@@ -8139,6 +8140,24 @@ dependencies = [
  "serde",
  "xcm",
  "xcm-calls",
+ "xcm-executor",
+]
+
+[[package]]
+name = "pallet-remote-treasury"
+version = "0.0.1"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "orml-traits",
+ "orml-xtokens 0.4.1-dev (git+https://github.com/open-web3-stack/open-runtime-module-library?branch=polkadot-v0.9.24)",
+ "parity-scale-codec 3.1.5",
+ "primitives",
+ "scale-info",
+ "serde",
+ "xcm",
  "xcm-executor",
 ]
 
