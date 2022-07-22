@@ -79,6 +79,9 @@ cumulus-relay-chain-rpc-interface = { git = "https://github.com/paritytech/cumul
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24" }
 
+pint-xcm-calls = { path = "../../ecosystem-modules/pint/primitives/xcm-calls", package = "xcm-calls", default-features = false }
+pint-runtime-common = { path = "../../ecosystem-modules/pint/runtime/common", package = "runtime-common", default-features = false }
+
 ecosystem-renvm-bridge = { path = "../../ecosystem-modules/ren/renvm-bridge" }
 module-collator-selection = { path = "../../modules/collator-selection" }
 module-evm = { path = "../../modules/evm" }

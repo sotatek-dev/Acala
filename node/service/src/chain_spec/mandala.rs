@@ -16,13 +16,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use acala_primitives::{orml_traits::GetByKey, AccountId, Balance, TokenSymbol};
+use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions, TELEMETRY_URL};
+use acala_primitives::{orml_traits::GetByKey, AccountId, Balance, CurrencyId, TokenSymbol};
 use coins_bip39::{English, Mnemonic, Wordlist};
 use elliptic_curve::sec1::ToEncodedPoint;
 use hex_literal::hex;
 use k256::{
 	ecdsa::{SigningKey, VerifyingKey},
 	EncodedPoint as K256PublicKey,
+};
+use pint_runtime_common::constants::POLKADOT_BONDING_DURATION_IN_BLOCKS;
+use pint_runtime_common::traits::XcmRuntimeCallWeights;
+use pint_xcm_calls::{
+	proxy::{ProxyConfig, ProxyWeights},
+	staking::{RewardDestination, StakingConfig, StakingWeights},
 };
 use runtime_common::evm_genesis;
 use sc_chain_spec::ChainType;
@@ -34,8 +41,6 @@ use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{traits::Zero, FixedPointNumber, FixedU128};
 use sp_std::{collections::btree_map::BTreeMap, str::FromStr};
 use tiny_keccak::{Hasher, Keccak};
-
-use crate::chain_spec::{get_account_id_from_seed, get_authority_keys_from_seed, Extensions, TELEMETRY_URL};
 
 pub type ChainSpec = sc_service::GenericChainSpec<mandala_runtime::GenesisConfig, Extensions>;
 
@@ -312,9 +317,9 @@ fn testnet_genesis(
 		CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
 		FinancialCouncilMembershipConfig, GeneralCouncilMembershipConfig, HomaCouncilMembershipConfig, IndicesConfig,
 		NativeTokenExistentialDeposit, OperatorMembershipAcalaConfig, OrmlNFTConfig, ParachainInfoConfig,
-		PintCommitteeConfig, PolkadotXcmConfig, RenVmBridgeConfig, SessionConfig, SessionDuration, SessionKeys,
-		SessionManagerConfig, StarportConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
-		TokensConfig, VestingConfig, ACA, AUSD, DOT, LDOT, RENBTC,
+		PintCommitteeConfig, PolkadotXcmConfig, RemoteAssetManagerConfig, RenVmBridgeConfig, SessionConfig,
+		SessionDuration, SessionKeys, SessionManagerConfig, StarportConfig, SudoConfig, SystemConfig,
+		TechnicalCommitteeMembershipConfig, TokensConfig, VestingConfig, ACA, AUSD, DOT, LDOT, RENBTC,
 	};
 
 	let existential_deposit = NativeTokenExistentialDeposit::get();
@@ -502,6 +507,27 @@ fn testnet_genesis(
 			council_members: vec![root_key],
 			..Default::default()
 		},
+		remote_asset_manager: RemoteAssetManagerConfig {
+			staking_configs: vec![(
+				CurrencyId::Token(TokenSymbol::ACA),
+				StakingConfig {
+					pallet_index: 7,
+					reward_destination: RewardDestination::Staked,
+					minimum_balance: 0,
+					weights: StakingWeights::polkadot(),
+					bonding_duration: POLKADOT_BONDING_DURATION_IN_BLOCKS,
+					is_frozen: true,
+				},
+			)],
+			proxy_configs: vec![(
+				CurrencyId::Token(TokenSymbol::ACA),
+				ProxyConfig {
+					pallet_index: 29,
+					weights: ProxyWeights::polkadot(),
+				},
+			)],
+			statemint_config: None,
+		},
 	}
 }
 
@@ -516,9 +542,9 @@ fn mandala_genesis(
 		CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
 		FinancialCouncilMembershipConfig, GeneralCouncilMembershipConfig, HomaCouncilMembershipConfig, IndicesConfig,
 		NativeTokenExistentialDeposit, OperatorMembershipAcalaConfig, OrmlNFTConfig, ParachainInfoConfig,
-		PintCommitteeConfig, PolkadotXcmConfig, RenVmBridgeConfig, SessionConfig, SessionDuration, SessionKeys,
-		SessionManagerConfig, StarportConfig, SudoConfig, SystemConfig, TechnicalCommitteeMembershipConfig,
-		TokensConfig, VestingConfig, ACA, AUSD, DOT, LDOT, RENBTC,
+		PintCommitteeConfig, PolkadotXcmConfig, RemoteAssetManagerConfig, RenVmBridgeConfig, SessionConfig,
+		SessionDuration, SessionKeys, SessionManagerConfig, StarportConfig, SudoConfig, SystemConfig,
+		TechnicalCommitteeMembershipConfig, TokensConfig, VestingConfig, ACA, AUSD, DOT, LDOT, RENBTC,
 	};
 
 	let existential_deposit = NativeTokenExistentialDeposit::get();
@@ -687,6 +713,27 @@ fn mandala_genesis(
 		pint_committee: PintCommitteeConfig {
 			council_members: vec![root_key],
 			..Default::default()
+		},
+		remote_asset_manager: RemoteAssetManagerConfig {
+			staking_configs: vec![(
+				CurrencyId::Token(TokenSymbol::ACA),
+				StakingConfig {
+					pallet_index: 7,
+					reward_destination: RewardDestination::Staked,
+					minimum_balance: 0,
+					weights: StakingWeights::polkadot(),
+					bonding_duration: POLKADOT_BONDING_DURATION_IN_BLOCKS,
+					is_frozen: true,
+				},
+			)],
+			proxy_configs: vec![(
+				CurrencyId::Token(TokenSymbol::ACA),
+				ProxyConfig {
+					pallet_index: 29,
+					weights: ProxyWeights::polkadot(),
+				},
+			)],
+			statemint_config: None,
 		},
 	}
 }

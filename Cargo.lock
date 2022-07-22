@@ -276,6 +276,7 @@ dependencies = [
  "parity-scale-codec 3.1.5",
  "polkadot-primitives",
  "polkadot-service",
+ "runtime-common 0.0.1",
  "runtime-common 2.8.3",
  "sc-basic-authorship",
  "sc-chain-spec",
@@ -316,6 +317,7 @@ dependencies = [
  "sp-trie",
  "substrate-prometheus-endpoint",
  "tiny-keccak",
+ "xcm-calls",
 ]
 
 [[package]]
@@ -5465,6 +5467,7 @@ dependencies = [
  "pallet-price-feed",
  "pallet-proxy",
  "pallet-recovery",
+ "pallet-remote-asset-manager",
  "pallet-remote-treasury",
  "pallet-saft-registry",
  "pallet-scheduler",
@@ -5506,6 +5509,7 @@ dependencies = [
  "substrate-wasm-builder",
  "xcm",
  "xcm-builder",
+ "xcm-calls",
  "xcm-executor",
 ]
 
@@ -8128,6 +8132,7 @@ version = "0.0.2"
 dependencies = [
  "cumulus-pallet-xcm",
  "cumulus-primitives-core",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
