@@ -31,8 +31,10 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use crate::xcm_config::XcmRouter;
-use codec::{Decode, DecodeLimit, Encode, EncodeAsRef, HasCompact, Output};
+use codec::{Decode, DecodeLimit, Encode};
 use cumulus_pallet_parachain_system::RelaychainBlockNumberProvider;
+use cumulus_primitives_core::ParaId;
+use frame_support::pallet_prelude::InvalidTransaction;
 pub use frame_support::{
 	construct_runtime, log, parameter_types,
 	traits::{
@@ -47,7 +49,6 @@ pub use frame_support::{
 	},
 	PalletId, RuntimeDebug, StorageValue,
 };
-use frame_support::{pallet_prelude::InvalidTransaction, sp_std::marker::PhantomData};
 use frame_system::{EnsureRoot, RawOrigin};
 use hex_literal::hex;
 use module_asset_registry::{AssetIdMaps, EvmErc20InfoMapping};
@@ -58,36 +59,24 @@ use module_evm_accounts::EvmAddressMapping;
 use module_relaychain::RelayChainCallBuilder;
 use module_support::{AssetIdMapping, DispatchableTask, ExchangeRateProvider, PoolId};
 use module_transaction_payment::TargetedFeeAdjustment;
-use orml_xcm_support::{DepositToAlternative, IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
-use polkadot_parachain::primitives::Sibling;
-use xcm::v1::NetworkId;
-use xcm_builder::{
-	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-	EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, LocationInverter, ParentIsPreset, RelayChainAsNative,
-	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeRevenue, TakeWeightCredit,
-};
-// use pint_runtime_common::constants::{RelayChainAssetId, AssetUnbondingSlashingSpans,
-// MinimumRemoteReserveBalance, MinimumBondExtra};
-use pint_runtime_common::constants::{
-	AssetUnbondingSlashingSpans, ExistentialDeposit, MinimumStatemintTransferAmount, RelayChainOrigin, CENTS, DECIMALS,
-	DOLLARS, UNITS,
-};
-use xcm_executor::XcmExecutor;
-// use cumulus_primitives_core::ParaId;
-// use pint_primitives::traits::MultiAssetRegistry;
 use orml_tokens::CurrencyAdapter;
 use orml_traits::{
 	create_median_value_data_provider, location::AbsoluteReserveProvider, parameter_type_with_key, DataFeeder,
 	DataProviderExtended, GetByKey,
 };
+use orml_xcm_support::MultiNativeAsset;
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use pallet_xcm::XcmPassthrough;
+use pint_primitives::traits::MultiAssetRegistry;
 pub use pint_primitives::*;
+use pint_runtime_common::constants::{
+	AssetUnbondingSlashingSpans, ExistentialDeposit, MinimumStatemintTransferAmount, RelayChainOrigin, CENTS,
+};
 use pint_xcm_calls::{
 	proxy::ProxyCallEncoder, staking::StakingCallEncoder, PalletCallEncoder, PassthroughCompactEncoder,
 	PassthroughEncoder,
 };
+use polkadot_parachain::primitives::Sibling;
 use primitives::{
 	define_combined_task,
 	evm::{AccessListItem, EthereumTransactionMessage},
@@ -111,7 +100,15 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
+use xcm::v1::NetworkId;
+use xcm_builder::{
+	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+	FixedRateOfFungible, FixedWeightBounds, LocationInverter, ParentIsPreset, RelayChainAsNative,
+	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignSignedViaLocation,
+	TakeWeightCredit,
+};
 use xcm_config::{CurrencyIdConvert, LocalAssetTransactor, SelfLocation, ToTreasury};
+use xcm_executor::XcmExecutor;
 
 pub use pallet_timestamp::Call as TimestampCall;
 #[cfg(any(feature = "std", test))]
@@ -124,8 +121,8 @@ pub use primitives::{
 	currency::AssetIds,
 	evm::{BlockLimits, EstimateResourcesRequest},
 	AccountId, AccountIndex, Address, Amount, AuctionId, AuthoritysOriginId, Balance, BlockNumber, CurrencyId,
-	DataProviderId, EraIndex, Hash, Lease, Moment, Multiplier, Nonce, PINTAccountId, ReserveIdentifier, Share,
-	Signature, TokenSymbol, TradingPair,
+	DataProviderId, EraIndex, Hash, Lease, Moment, Multiplier, Nonce, ReserveIdentifier, Share, Signature, TokenSymbol,
+	TradingPair,
 };
 pub use runtime_common::{
 	cent, dollar, microcent, millicent, AcalaDropAssets, AllPrecompiles, EnsureRootOrAllGeneralCouncil,
@@ -158,6 +155,7 @@ pub use pint_local_treasury;
 pub use pint_price_feed;
 pub use pint_primitives;
 pub use pint_remote_asset_manager;
+pub use pint_remote_treasury;
 pub use pint_saft_registry;
 pub use pint_xcm_calls;
 // use xcm_executor::XcmExecutor;
@@ -222,12 +220,6 @@ parameter_types! {
 
 	pub const PintTreasuryPalletId: PalletId = PalletId(*b"pint/trs");
 
-	// pub const DECIMALS: u8 = 0u8;
-	// pub const UNITS: Balance = 1;
-	// pub const DOLLARS: Balance = UNITS; // 1
-	// pub const CENTS: Balance = DOLLARS / 100;
-
-	// pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay;
 	pub Ancestry: MultiLocation = Junction::Parachain(
 		ParachainInfo::parachain_id().into()
 	).into();
@@ -1868,6 +1860,65 @@ impl orml_tokens::ConvertBalance<Balance, Balance> for ConvertBalanceHoma {
 	}
 }
 
+pub struct AssetIdConvert;
+impl Convert<CurrencyId, Option<MultiLocation>> for AssetIdConvert {
+	fn convert(asset: CurrencyId) -> Option<MultiLocation> {
+		AssetIndex::native_asset_location(&asset)
+	}
+}
+
+impl Convert<MultiLocation, Option<CurrencyId>> for AssetIdConvert {
+	fn convert(location: MultiLocation) -> Option<CurrencyId> {
+		match location {
+			MultiLocation {
+				parents: 1,
+				interior: Junctions::Here,
+			} => return Some(RelayChainAssetId::get()),
+			MultiLocation {
+				parents: 1,
+				interior: Junctions::X2(Junction::Parachain(id), Junction::GeneralKey(key)),
+			} if ParaId::from(id) == ParachainInfo::parachain_id() => {
+				// decode the general key
+				if let Ok(asset_id) = CurrencyId::decode(&mut &key[..]) {
+					// check `asset_id` is supported
+					if AssetIndex::is_liquid_asset(&asset_id) {
+						return Some(asset_id);
+					}
+				}
+			}
+			_ => {}
+		}
+		None
+	}
+}
+
+impl Convert<MultiAsset, Option<CurrencyId>> for AssetIdConvert {
+	fn convert(asset: MultiAsset) -> Option<CurrencyId> {
+		if let xcm::v1::AssetId::Concrete(location) = asset.id {
+			Self::convert(location)
+		} else {
+			None
+		}
+	}
+}
+
+pub struct AccountId32Convert;
+impl Convert<AccountId, [u8; 32]> for AccountId32Convert {
+	fn convert(account_id: AccountId) -> [u8; 32] {
+		account_id.into()
+	}
+}
+
+impl Convert<AccountId, MultiLocation> for AccountId32Convert {
+	fn convert(account_id: AccountId) -> MultiLocation {
+		Junction::AccountId32 {
+			network: NetworkId::Any,
+			id: Self::convert(account_id),
+		}
+		.into()
+	}
+}
+
 pub struct IsLiquidToken;
 impl Contains<CurrencyId> for IsLiquidToken {
 	fn contains(currency_id: &CurrencyId) -> bool {
@@ -1937,6 +1988,7 @@ parameter_types! {
 	pub const PINTAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::PINT);
 	pub const MaxActiveDeposits: u32 = 50;
 	pub const MaxDecimals: u8 = 18;
+	pub const RelayChainAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::ACA);
 }
 
 /// Range of lockup period
@@ -2016,6 +2068,21 @@ parameter_type_with_key! {
 		ExistentialDeposit::get()
 	};
 }
+
+impl pint_remote_treasury::Config for Runtime {
+	type Event = Event;
+	type AdminOrigin = pint_committee::EnsureApprovedByCommittee<Runtime>;
+	type Balance = Balance;
+	type AssetId = CurrencyId;
+	type PalletId = TreasuryPalletId;
+	type SelfAssetId = PINTAssetId;
+	type RelayChainAssetId = RelayChainAssetId;
+	type XcmAssetTransfer = XTokens;
+	type AssetIdConvert = CurrencyIdConvert;
+	type AccountId32Convert = AccountId32Convert;
+	type WeightInfo = ();
+}
+
 impl pint_remote_asset_manager::Config for Runtime {
 	type Balance = Balance;
 	type AssetId = CurrencyId;
@@ -2370,7 +2437,8 @@ construct_runtime!(
 		PintCommittee: pint_committee::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>} = 212,
 		PintLocalTreasury: pint_local_treasury::{Pallet, Call, Storage, Event<T>} = 213,
 		SaftRegistry: pint_saft_registry::{Pallet, Call, Storage, Event<T>} = 214,
-		RemoteAssetManager : pint_remote_asset_manager::{Pallet, Call, Storage, Event<T>, Config<T>} = 215,
+		PintRemoteTreasury: pint_remote_treasury::{Pallet, Call, Storage, Event<T>} = 215,
+		RemoteAssetManager : pint_remote_asset_manager::{Pallet, Call, Storage, Event<T>, Config<T>} = 216,
 		// Dev
 		Sudo: pallet_sudo = 255,
 	}
