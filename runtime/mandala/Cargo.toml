@@ -148,6 +148,8 @@ pint-xcm-calls = { path = "../../ecosystem-modules/pint/primitives/xcm-calls", p
 pint-runtime-common = { path = "../../ecosystem-modules/pint/runtime/common", package = "runtime-common", default-features = false }
 pint-remote-treasury = { path = "../../ecosystem-modules/pint/pallets/remote-treasury", package = "pallet-remote-treasury", default-features = false }
 
+pallet-chainlink-feed = { git = 'https://github.com/Sotatek-BaoHoang2/chainlink-polkadot', branch = 'polkadot-v0.9.24', default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 

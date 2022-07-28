@@ -117,6 +117,7 @@ pub use sp_runtime::{Perbill, Percent, Permill, Perquintill};
 
 pub use authority::AuthorityConfigImpl;
 pub use constants::{fee::*, time::*};
+pub use pint_primitives::AssetId as PintPrimitiveAssetId;
 pub use primitives::{
 	currency::AssetIds,
 	evm::{BlockLimits, EstimateResourcesRequest},
@@ -1966,15 +1967,15 @@ impl pint_primitives::traits::MaybeAssetIdConvert<u8, CurrencyId> for Runtime {
 	}
 }
 
-// This is currently required to satisfy PINT's chainlink dependency for benchmarks
-#[cfg(feature = "runtime-benchmarks")]
-pub struct PriceFeedBenchmarks;
-#[cfg(feature = "runtime-benchmarks")]
-impl pint_price_feed::PriceFeedBenchmarks<AccountId, CurrencyId> for PriceFeedBenchmarks {
-	fn create_feed(_: AccountId, _: CurrencyId) -> frame_support::dispatch::DispatchResultWithPostInfo {
-		Ok(().into())
-	}
-}
+// // This is currently required to satisfy PINT's chainlink dependency for benchmarks
+// #[cfg(feature = "runtime-benchmarks")]
+// pub struct PriceFeedBenchmarks;
+// #[cfg(feature = "runtime-benchmarks")]
+// impl pint_price_feed::PriceFeedBenchmarks<AccountId, CurrencyId> for PriceFeedBenchmarks {
+// 	fn create_feed(_: AccountId, _: CurrencyId) ->
+// frame_support::dispatch::DispatchResultWithPostInfo { 		Ok(().into())
+// 	}
+// }
 
 parameter_types! {
 	pub const MinCouncilVotes: usize = 1;
@@ -1985,7 +1986,8 @@ parameter_types! {
 	pub const IndexTokenLockIdentifier: LockIdentifier = *b"pint/lck";
 	pub const BaseWithdrawalFee: pint_primitives::fee::FeeRate = pint_primitives::fee::FeeRate{ numerator: 3, denominator: 1_000,};
 	pub const AssetIndexStringLimit: u32 = 50;
-	pub const PINTAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::PINT);
+	// pub const PINTAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::PINT);
+	pub const PINTAssetId: PintPrimitiveAssetId = 1;
 	pub const MaxActiveDeposits: u32 = 50;
 	pub const MaxDecimals: u8 = 18;
 	pub const RelayChainAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::ACA);
@@ -2121,9 +2123,9 @@ impl pint_asset_index::Config for Runtime {
 	type AssetId = CurrencyId;
 	type SelfAssetId = PINTAssetId;
 	type Currency = Currencies;
-	type PriceFeed = AggregatedDataProvider;
+	type PriceFeed = PriceFeed;
 	#[cfg(feature = "runtime-benchmarks")]
-	type PriceFeedBenchmarks = PriceFeedBenchmarks;
+	type PriceFeedBenchmarks = PriceFeed;
 	type SaftRegistry = SaftRegistry;
 	type BaseWithdrawalFee = BaseWithdrawalFee;
 	type TreasuryPalletId = TreasuryPalletId;
@@ -2132,24 +2134,35 @@ impl pint_asset_index::Config for Runtime {
 	type WeightInfo = pint_runtime_common::weights::pallet_asset_index::WeightInfo<Runtime>;
 }
 
-// Wrapper for the `AggregatedDataProvider` until chainlink pallet is supported
-impl pint_price_feed::PriceFeed<CurrencyId> for AggregatedDataProvider {
-	fn get_price(base: CurrencyId) -> Result<Price, sp_runtime::DispatchError> {
-		<Self as orml_traits::DataProvider<_, _>>::get(&base)
-			.ok_or_else(|| module_prices::Error::<Runtime>::AccessPriceFailed.into())
-	}
-	fn get_relative_price_pair(
-		base: CurrencyId,
-		quote: CurrencyId,
-	) -> Result<pint_price_feed::AssetPricePair<CurrencyId>, sp_runtime::DispatchError> {
-		use frame_support::sp_runtime::traits::CheckedDiv;
-		let base_price = Self::get_price(base.clone())?;
-		let quote_price = Self::get_price(quote.clone())?;
-		let price = base_price
-			.checked_div(&quote_price)
-			.ok_or(module_prices::Error::<Runtime>::AccessPriceFailed)?;
-		Ok(pint_price_feed::AssetPricePair::new(base, quote, price))
-	}
+parameter_types! {
+	pub FeedPalletId: PalletId = PalletId(*b"linkfeed");
+	pub MinimumReserve: Balance = 100;
+	pub StringLimit: u32 = 15;
+	pub OracleLimit: u32 = 10;
+	pub FeedLimit: u16 = 10;
+}
+impl pallet_chainlink_feed::Config for Runtime {
+	type Event = Event;
+	type FeedId = FeedId;
+	type Value = Value;
+	type Currency = Balances;
+	type PalletId = FeedPalletId;
+	type MinimumReserve = MinimumReserve;
+	type StringLimit = StringLimit;
+	type OracleCountLimit = OracleLimit;
+	type FeedLimit = FeedLimit;
+	type OnAnswerHandler = PriceFeed;
+	type WeightInfo = ();
+}
+
+impl pint_price_feed::Config for Runtime {
+	type AdminOrigin = frame_system::EnsureRoot<AccountId>;
+	type SelfAssetId = PINTAssetId;
+	type AssetId = PintPrimitiveAssetId;
+	type Time = Timestamp;
+	type Event = Event;
+	type WeightInfo = pint_runtime_common::weights::pallet_price_feed::WeightInfo<Runtime>;
+	// type WeightInfo = weights::pint_price_feed::WeightInfo<Runtime>;
 }
 
 /// Remote Asset manager that does nothing
@@ -2439,6 +2452,8 @@ construct_runtime!(
 		SaftRegistry: pint_saft_registry::{Pallet, Call, Storage, Event<T>} = 214,
 		PintRemoteTreasury: pint_remote_treasury::{Pallet, Call, Storage, Event<T>} = 215,
 		RemoteAssetManager : pint_remote_asset_manager::{Pallet, Call, Storage, Event<T>, Config<T>} = 216,
+		PriceFeed: pint_price_feed::{Pallet, Call, Storage, Event<T>} = 86,
+		ChainlinkFeed: pallet_chainlink_feed::{Pallet, Call, Storage, Event<T>, Config<T>} = 90,
 		// Dev
 		Sudo: pallet_sudo = 255,
 	}
