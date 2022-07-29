@@ -314,7 +314,7 @@ fn testnet_genesis(
 ) -> mandala_runtime::GenesisConfig {
 	use mandala_runtime::{
 		dollar, get_all_module_accounts, AssetRegistryConfig, BalancesConfig, CdpEngineConfig, CdpTreasuryConfig,
-		CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
+		ChainlinkFeedConfig, CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
 		FinancialCouncilMembershipConfig, GeneralCouncilMembershipConfig, HomaCouncilMembershipConfig, IndicesConfig,
 		NativeTokenExistentialDeposit, OperatorMembershipAcalaConfig, OrmlNFTConfig, ParachainInfoConfig,
 		PintCommitteeConfig, PolkadotXcmConfig, RemoteAssetManagerConfig, RenVmBridgeConfig, SessionConfig,
@@ -354,6 +354,11 @@ fn testnet_genesis(
 		.collect::<Vec<(AccountId, Balance)>>();
 
 	mandala_runtime::GenesisConfig {
+		chainlink_feed: ChainlinkFeedConfig {
+			feeds: Default::default(),
+			pallet_admin: Some(root_key.clone()),
+			feed_creators: vec![root_key.clone()],
+		},
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),
@@ -539,7 +544,7 @@ fn mandala_genesis(
 ) -> mandala_runtime::GenesisConfig {
 	use mandala_runtime::{
 		cent, dollar, get_all_module_accounts, AssetRegistryConfig, BalancesConfig, CdpEngineConfig, CdpTreasuryConfig,
-		CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
+		ChainlinkFeedConfig, CollatorSelectionConfig, DexConfig, EVMConfig, EnabledTradingPairs, ExistentialDeposits,
 		FinancialCouncilMembershipConfig, GeneralCouncilMembershipConfig, HomaCouncilMembershipConfig, IndicesConfig,
 		NativeTokenExistentialDeposit, OperatorMembershipAcalaConfig, OrmlNFTConfig, ParachainInfoConfig,
 		PintCommitteeConfig, PolkadotXcmConfig, RemoteAssetManagerConfig, RenVmBridgeConfig, SessionConfig,
@@ -579,6 +584,11 @@ fn mandala_genesis(
 		.collect::<Vec<(AccountId, Balance)>>();
 
 	mandala_runtime::GenesisConfig {
+		chainlink_feed: ChainlinkFeedConfig {
+			feeds: Default::default(),
+			pallet_admin: Some(root_key.clone()),
+			feed_creators: vec![root_key.clone()],
+		},
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary.to_vec(),

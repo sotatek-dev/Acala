@@ -1986,8 +1986,7 @@ parameter_types! {
 	pub const IndexTokenLockIdentifier: LockIdentifier = *b"pint/lck";
 	pub const BaseWithdrawalFee: pint_primitives::fee::FeeRate = pint_primitives::fee::FeeRate{ numerator: 3, denominator: 1_000,};
 	pub const AssetIndexStringLimit: u32 = 50;
-	// pub const PINTAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::PINT);
-	pub const PINTAssetId: PintPrimitiveAssetId = 1;
+	pub const PINTAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::PINT);
 	pub const MaxActiveDeposits: u32 = 50;
 	pub const MaxDecimals: u8 = 18;
 	pub const RelayChainAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::ACA);
@@ -2158,7 +2157,7 @@ impl pallet_chainlink_feed::Config for Runtime {
 impl pint_price_feed::Config for Runtime {
 	type AdminOrigin = frame_system::EnsureRoot<AccountId>;
 	type SelfAssetId = PINTAssetId;
-	type AssetId = PintPrimitiveAssetId;
+	type AssetId = CurrencyId;
 	type Time = Timestamp;
 	type Event = Event;
 	type WeightInfo = pint_runtime_common::weights::pallet_price_feed::WeightInfo<Runtime>;
