@@ -1988,7 +1988,7 @@ parameter_types! {
 	pub const PINTAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::PINT);
 	pub const MaxActiveDeposits: u32 = 50;
 	pub const MaxDecimals: u8 = 18;
-	pub const RelayChainAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::ACA);
+	pub const RelayChainAssetId: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
 }
 
 /// Range of lockup period
