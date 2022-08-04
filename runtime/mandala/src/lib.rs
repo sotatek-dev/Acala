@@ -107,7 +107,7 @@ use xcm_builder::{
 	SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative, SovereignSignedViaLocation,
 	TakeWeightCredit,
 };
-use xcm_config::{CurrencyIdConvert, LocalAssetTransactor, SelfLocation, ToTreasury};
+use xcm_config::{LocalAssetTransactor, SelfLocation, ToTreasury};
 use xcm_executor::XcmExecutor;
 
 pub use pallet_timestamp::Call as TimestampCall;
@@ -2078,7 +2078,7 @@ impl pint_remote_treasury::Config for Runtime {
 	type SelfAssetId = PINTAssetId;
 	type RelayChainAssetId = RelayChainAssetId;
 	type XcmAssetTransfer = XTokens;
-	type AssetIdConvert = CurrencyIdConvert;
+	type AssetIdConvert = AssetIdConvert;
 	type AccountId32Convert = AccountId32Convert;
 	type WeightInfo = ();
 }
@@ -2086,7 +2086,7 @@ impl pint_remote_treasury::Config for Runtime {
 impl pint_remote_asset_manager::Config for Runtime {
 	type Balance = Balance;
 	type AssetId = CurrencyId;
-	type AssetIdConvert = CurrencyIdConvert;
+	type AssetIdConvert = AssetIdConvert;
 	type PalletStakingCallEncoder = PalletStakingEncoder;
 	type PalletProxyCallEncoder = PalletProxyEncoder;
 	type MinimumStatemintTransferAmount = MinimumStatemintTransferAmount;
