@@ -30,7 +30,7 @@ use sc_cli::{
 	RuntimeVersion, SharedParams, SubstrateCli,
 };
 use sc_service::config::{BasePath, PrometheusConfig};
-use service::{chain_spec, new_partial, IdentifyVariant};
+use service::{chain_spec, new_partial, IdentifyVariant, MandalaExecutorDispatch};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
@@ -298,11 +298,21 @@ pub fn run() -> sc_cli::Result<()> {
 							}
 						}
 						BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
-							let partials = new_partial::<RuntimeApi>(&config, true, false)?;
+							#[cfg(feature = "with-mandala-runtime")]
+							let partials = new_partial::<RuntimeApi, MandalaExecutorDispatch>(&config, true, false)?;#[cfg(feature = "with-mandala-runtime")]
+							#[cfg(feature = "with-acala-runtime")]
+							let partials = new_partial::<RuntimeApi, AcalaExecutorDispatch>(&config, true, false)?;#[cfg(feature = "with-mandala-runtime")]
+							#[cfg(feature = "with-karura-runtime")]
+							let partials = new_partial::<RuntimeApi, KaruraExecutorDispatch>(&config, true, false)?;
 							cmd.run(partials.client)
 						}),
 						BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
-							let partials = new_partial::<RuntimeApi>(&config, true, false)?;
+							#[cfg(feature = "with-mandala-runtime")]
+							let partials = new_partial::<RuntimeApi, MandalaExecutorDispatch>(&config, true, false)?;#[cfg(feature = "with-mandala-runtime")]
+							#[cfg(feature = "with-acala-runtime")]
+							let partials = new_partial::<RuntimeApi, AcalaExecutorDispatch>(&config, true, false)?;#[cfg(feature = "with-mandala-runtime")]
+							#[cfg(feature = "with-karura-runtime")]
+							let partials = new_partial::<RuntimeApi, KaruraExecutorDispatch>(&config, true, false)?;
 							let db = partials.backend.expose_db();
 							let storage = partials.backend.expose_storage();
 
@@ -524,7 +534,8 @@ pub fn run() -> sc_cli::Result<()> {
 
 				with_runtime_or_err!(config.chain_spec, {
 					{
-						service::start_node::<RuntimeApi>(config, polkadot_config, collator_options, id)
+						#[cfg(feature = "with-mandala-runtime")]
+						service::start_node::<RuntimeApi, MandalaExecutorDispatch>(config, polkadot_config, collator_options, id)
 							.await
 							.map(|r| r.0)
 							.map_err(Into::into)

@@ -31,6 +31,14 @@ use sp_runtime::{
 };
 use sp_storage::{ChildInfo, StorageData, StorageKey};
 use std::sync::Arc;
+#[cfg(feature = "with-acala-runtime")]
+use crate::AcalaExecutorDispatch;
+
+#[cfg(feature = "with-karura-runtime")]
+use crate::KaruraExecutorDispatch;
+
+#[cfg(feature = "with-mandala-runtime")]
+use crate::MandalaExecutorDispatch;
 
 /// A set of APIs that polkadot-like runtimes must implement.
 pub trait RuntimeApiCollection:
@@ -147,11 +155,11 @@ pub trait ClientHandle {
 #[derive(Clone)]
 pub enum Client {
 	#[cfg(feature = "with-mandala-runtime")]
-	Mandala(Arc<crate::FullClient<mandala_runtime::RuntimeApi>>),
+	Mandala(Arc<crate::FullClient<mandala_runtime::RuntimeApi, MandalaExecutorDispatch>>),
 	#[cfg(feature = "with-karura-runtime")]
-	Karura(Arc<crate::FullClient<karura_runtime::RuntimeApi>>),
+	Karura(Arc<crate::FullClient<karura_runtime::RuntimeApi, KaruraExecutorDispatch>>),
 	#[cfg(feature = "with-acala-runtime")]
-	Acala(Arc<crate::FullClient<acala_runtime::RuntimeApi>>),
+	Acala(Arc<crate::FullClient<acala_runtime::RuntimeApi, AcalaExecutorDispatch>>),
 }
 
 impl ClientHandle for Client {
