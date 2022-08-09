@@ -1881,6 +1881,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for AssetIdConvert {
 				// decode the general key
 				if let Ok(asset_id) = CurrencyId::decode(&mut &key[..]) {
 					// check `asset_id` is supported
+					log::info!("{:?}", asset_id);
 					if AssetIndex::is_liquid_asset(&asset_id) {
 						return Some(asset_id);
 					}
@@ -1895,6 +1896,7 @@ impl Convert<MultiLocation, Option<CurrencyId>> for AssetIdConvert {
 impl Convert<MultiAsset, Option<CurrencyId>> for AssetIdConvert {
 	fn convert(asset: MultiAsset) -> Option<CurrencyId> {
 		if let xcm::v1::AssetId::Concrete(location) = asset.id {
+			log::info!("convert fn : {:?}", location);
 			Self::convert(location)
 		} else {
 			None
@@ -2022,7 +2024,7 @@ type PintGovernanceOrigin<AccountId, Runtime> = frame_support::traits::EnsureOne
 >;
 
 impl pint_saft_registry::Config for Runtime {
-	type AdminOrigin = pint_committee::EnsureApprovedByCommittee<Runtime>;
+	type AdminOrigin = pint_committee::EnsureMember<Self>;
 	type AssetRecorder = AssetIndex;
 	#[cfg(feature = "runtime-benchmarks")]
 	type AssetRecorderBenchmarks = AssetIndex;
@@ -2033,7 +2035,7 @@ impl pint_saft_registry::Config for Runtime {
 }
 
 impl pint_local_treasury::Config for Runtime {
-	type AdminOrigin = pint_committee::EnsureApprovedByCommittee<Runtime>;
+	type AdminOrigin = pint_committee::EnsureMember<Self>;
 	type PalletId = TreasuryPalletId;
 	type Currency = Balances;
 	type Event = Event;
@@ -2071,14 +2073,14 @@ parameter_type_with_key! {
 
 impl pint_remote_treasury::Config for Runtime {
 	type Event = Event;
-	type AdminOrigin = pint_committee::EnsureApprovedByCommittee<Runtime>;
+	type AdminOrigin = pint_committee::EnsureMember<Self>;
 	type Balance = Balance;
 	type AssetId = CurrencyId;
 	type PalletId = TreasuryPalletId;
 	type SelfAssetId = PINTAssetId;
 	type RelayChainAssetId = RelayChainAssetId;
 	type XcmAssetTransfer = XTokens;
-	type AssetIdConvert = CurrencyIdConvert;
+	type AssetIdConvert = AssetIdConvert;
 	type AccountId32Convert = AccountId32Convert;
 	type WeightInfo = ();
 }
@@ -2086,7 +2088,7 @@ impl pint_remote_treasury::Config for Runtime {
 impl pint_remote_asset_manager::Config for Runtime {
 	type Balance = Balance;
 	type AssetId = CurrencyId;
-	type AssetIdConvert = CurrencyIdConvert;
+	type AssetIdConvert = AssetIdConvert;
 	type PalletStakingCallEncoder = PalletStakingEncoder;
 	type PalletProxyCallEncoder = PalletProxyEncoder;
 	type MinimumStatemintTransferAmount = MinimumStatemintTransferAmount;
@@ -2099,14 +2101,14 @@ impl pint_remote_asset_manager::Config for Runtime {
 	type Assets = Currencies;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmAssetTransfer = XTokens;
-	type AdminOrigin = pint_committee::EnsureApprovedByCommittee<Runtime>;
+	type AdminOrigin = pint_committee::EnsureMember<Self>;
 	type XcmSender = XcmRouter;
 	type Event = Event;
 	type WeightInfo = pint_runtime_common::weights::pallet_remote_asset_manager::WeightInfo<Runtime>;
 }
 
 impl pint_asset_index::Config for Runtime {
-	type AdminOrigin = pint_committee::EnsureApprovedByCommittee<Runtime>;
+	type AdminOrigin = pint_committee::EnsureMember<Self>;
 	type IndexToken = Balances;
 	type Balance = Balance;
 	type MaxActiveDeposits = MaxActiveDeposits;
@@ -2135,8 +2137,9 @@ impl pint_asset_index::Config for Runtime {
 // Wrapper for the `AggregatedDataProvider` until chainlink pallet is supported
 impl pint_price_feed::PriceFeed<CurrencyId> for AggregatedDataProvider {
 	fn get_price(base: CurrencyId) -> Result<Price, sp_runtime::DispatchError> {
-		<Self as orml_traits::DataProvider<_, _>>::get(&base)
-			.ok_or_else(|| module_prices::Error::<Runtime>::AccessPriceFailed.into())
+		Ok(Price::from(30_000))
+		// <Self as orml_traits::DataProvider<_, _>>::get(&base)
+		// .ok_or_else(|| module_prices::Error::<Runtime>::AccessPriceFailed.into())
 	}
 	fn get_relative_price_pair(
 		base: CurrencyId,
@@ -2405,7 +2408,7 @@ construct_runtime!(
 		PolkadotXcm: pallet_xcm = 171,
 		CumulusXcm: cumulus_pallet_xcm exclude_parts { Call } = 172,
 		DmpQueue: cumulus_pallet_dmp_queue = 173,
-		XTokens: orml_xtokens = 174,
+		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 174,
 		UnknownTokens: orml_unknown_tokens exclude_parts { Call } = 175,
 		OrmlXcm: orml_xcm = 176,
 
